@@ -1,5 +1,5 @@
 use crate::tex::TexKind;
-use raylib::prelude::*;
+use macroquad::prelude::*;
 
 pub struct Assets {
     pub dirt_1: Texture2D,

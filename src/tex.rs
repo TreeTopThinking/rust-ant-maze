@@ -1,5 +1,5 @@
 use crate::assets::Assets;
-use raylib::prelude::*;
+use macroquad::prelude::*;
 
 // The differant textures that can be used
 #[derive(Clone, Copy, Debug)]
@@ -20,14 +20,22 @@ pub enum TexKind {
 }
 
 impl TexKind {
-    fn draw_tex(d: &mut RaylibDrawHandle, tex: &Texture2D, pos: Vector2, width: i32) {
-        let scale = width as f32 / tex.width as f32;
-        d.draw_texture_ex(tex, pos, 0.0, scale, Color::WHITE);
+    fn draw_tex(tex: &Texture2D, pos: Vec2, size: i32) {
+        draw_texture_ex(
+            tex,
+            pos.x,
+            pos.y,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(size as f32, size as f32)),
+                ..Default::default()
+            },
+        );
     }
 
-    pub fn draw(&self, d: &mut RaylibDrawHandle, assets: &Assets, x: i32, y: i32, width: i32) {
-        let pos = Vector2::new(x as f32, y as f32);
+    pub fn draw(&self, assets: &Assets, x: i32, y: i32, width: i32) {
+        let pos = vec2(x as f32, y as f32);
 
-        TexKind::draw_tex(d, assets.find(*self), pos, width)
+        TexKind::draw_tex(assets.find(*self), pos, width)
     }
 }

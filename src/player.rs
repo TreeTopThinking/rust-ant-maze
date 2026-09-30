@@ -1,5 +1,5 @@
 use crate::cell::Cell;
-use raylib::{ffi::Rectangle, prelude::*};
+use macroquad::prelude::*;
 
 #[derive(PartialEq)]
 enum Dir {
@@ -10,9 +10,9 @@ enum Dir {
 }
 
 pub struct Player<const COLS: usize, const ROWS: usize> {
-    pub pos: Vector2,
-    pub size: Vector2,
-    vel: Vector2,
+    pub pos: Vec2,
+    pub size: Vec2,
+    vel: Vec2,
     acc_y: f32,
     jump: f32,
     player_speed: f32,
@@ -34,12 +34,12 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         gravity: f32,
     ) -> Self {
         Player {
-            pos: Vector2::new(x, y),
-            size: Vector2::new(width, height),
-            vel: Vector2::new(0.0, 0.0),
+            pos: vec2(x, y),
+            size: vec2(width, height),
+            vel: vec2(0.0, 0.0),
             acc_y: gravity,
-            jump: 0.1,
-            player_speed: 0.03,
+            jump: 2.0,
+            player_speed: 0.8,
             cells: cells,
             cell_size: cell_size,
             is_on_floor: false,
@@ -48,10 +48,10 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         }
     }
 
-    pub fn update(&mut self, rl: &RaylibHandle, width: i32) {
-        if (rl.is_key_pressed(KeyboardKey::KEY_SPACE)
-            || rl.is_key_pressed(KeyboardKey::KEY_W)
-            || rl.is_key_pressed(KeyboardKey::KEY_UP))
+    pub fn update(&mut self) {
+        if (is_key_pressed(KeyCode::Space)
+            || is_key_pressed(KeyCode::W)
+            || is_key_pressed(KeyCode::Up))
             && self.jump_count < 2
         {
             self.vel.y -= self.jump;
@@ -63,25 +63,21 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         let mut left_pressed = false;
         let mut right_pressed = false;
 
-        if rl.is_key_down(KeyboardKey::KEY_A) || rl.is_key_down(KeyboardKey::KEY_LEFT) {
-            if self.pos.x > 0.0 {
-                self.vel.x -= self.player_speed;
-                left_pressed = true;
-            }
+        if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+            self.vel.x -= self.player_speed;
+            left_pressed = true;
 
             self.direction = Dir::Left;
         }
-        if rl.is_key_down(KeyboardKey::KEY_D) || rl.is_key_down(KeyboardKey::KEY_RIGHT) {
-            if self.pos.x < width as f32 - self.size.x {
-                self.vel.x += self.player_speed;
-                right_pressed = true;
-            }
+        if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+            self.vel.x += self.player_speed;
+            right_pressed = true;
 
             self.direction = Dir::Right;
         }
 
-        if rl.is_key_down(KeyboardKey::KEY_S) || rl.is_key_pressed(KeyboardKey::KEY_DOWN) {
-            self.vel.y += self.player_speed;
+        if is_key_down(KeyCode::S) || is_key_pressed(KeyCode::Down) {
+            self.vel.y += 0.01;
         }
 
         self.pos.x += self.vel.x;
@@ -92,12 +88,14 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             if self.vel.x > 0.0 {
                 self.pos.x = x - self.size.x;
 
+                // If right is pressed and the player is falling
                 if right_pressed && self.vel.y > 0.0 {
                     self.vel.y = 0.0;
                 }
             } else {
                 self.pos.x = x + width;
 
+                // If right is pressed and the player is falling
                 if left_pressed && self.vel.y > 0.0 {
                     self.vel.y = 0.0;
                 }
@@ -189,28 +187,29 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         None
     }
 
-    pub fn draw(&self, d: &mut RaylibDrawHandle<'_>, left: &Texture2D, right: &Texture2D) {
-        let source = Rectangle::new(0.0, 0.0, left.width as f32, left.height as f32);
-        let destination = Rectangle::new(self.pos.x, self.pos.y, self.size.x, self.size.y);
-
+    pub fn draw(&self, left: &Texture2D, right: &Texture2D) {
         if self.direction == Dir::Left {
-            d.draw_texture_pro(
+            draw_texture_ex(
                 left,
-                source,
-                destination,
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
+                self.pos.x,
+                self.pos.y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(self.size.x, self.size.y)),
+                    ..Default::default()
+                },
+            )
         } else {
-            d.draw_texture_pro(
+            draw_texture_ex(
                 right,
-                source,
-                destination,
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
+                self.pos.x,
+                self.pos.y,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(self.size.x, self.size.y)),
+                    ..Default::default()
+                },
+            )
         }
     }
 }

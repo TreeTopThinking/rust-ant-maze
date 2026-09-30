@@ -1,7 +1,7 @@
 use crate::assets::Assets;
 use crate::tex::TexKind;
 use crate::tex::TexKind::*;
-use raylib::prelude::*;
+use macroquad::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Cell {
@@ -23,13 +23,13 @@ impl Cell {
         }
     }
 
-    pub fn draw(&self, d: &mut RaylibDrawHandle, assets: &Assets, size: i32) {
+    pub fn draw(&self, assets: &Assets, size: i32) {
         let x = self.i as i32 * size;
         let y = self.j as i32 * size;
 
-        self.tex.draw(d, assets, x, y, size);
+        self.tex.draw(assets, x, y, size);
         if self.artifact.is_some() {
-            self.artifact.unwrap().draw(d, assets, x, y, size);
+            self.artifact.unwrap().draw(assets, x, y, size);
         }
     }
 }

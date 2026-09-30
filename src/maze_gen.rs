@@ -3,8 +3,8 @@ use crate::assets::Assets;
 use crate::cell::Cell;
 use crate::dfs_gen::DfsMazeGen;
 use crate::tex::TexKind;
-use rand::random_range;
-use raylib::prelude::*;
+use ::rand::random_range;
+use macroquad::prelude::*;
 
 pub trait MazeGen<const COLS: usize, const ROWS: usize> {
     fn get_mut_cells(&mut self) -> &mut [[Cell; COLS]; ROWS];
@@ -91,10 +91,10 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
         }
     }
 
-    fn draw(&mut self, d: &mut RaylibDrawHandle, assets: &Assets, size: i32) {
+    fn draw(&mut self, assets: &Assets, size: i32) {
         for row in self.get_cells() {
             for cell in row {
-                cell.draw(d, assets, size);
+                cell.draw(assets, size);
             }
         }
     }

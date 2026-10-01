@@ -1,5 +1,6 @@
 use crate::cell::Cell;
 use macroquad::prelude::*;
+use quadgif::GifAnimation;
 
 #[derive(PartialEq)]
 enum Dir {
@@ -15,12 +16,14 @@ pub struct Player<const COLS: usize, const ROWS: usize> {
     vel: Vec2,
     acc_y: f32,
     jump: f32,
+    jumped: bool,
     player_speed: f32,
+    climb_speed: f32,
     cells: [[Cell; COLS]; ROWS],
     cell_size: f32,
     is_on_floor: bool,
-    jump_count: i32,
     direction: Dir,
+    climbing: bool,
 }
 
 impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
@@ -38,25 +41,20 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             size: vec2(width, height),
             vel: vec2(0.0, 0.0),
             acc_y: gravity,
-            jump: 2.0,
+            jump: 0.9,
+            jumped: false,
             player_speed: 0.8,
+            climb_speed: 0.8,
             cells: cells,
             cell_size: cell_size,
             is_on_floor: false,
-            jump_count: 0,
             direction: Dir::Left,
+            climbing: false,
         }
     }
 
     pub fn update(&mut self) {
-        if (is_key_pressed(KeyCode::Space)
-            || is_key_pressed(KeyCode::W)
-            || is_key_pressed(KeyCode::Up))
-            && self.jump_count < 2
-        {
-            self.vel.y -= self.jump;
-            self.jump_count += 1;
-        }
+        self.climbing = false;
 
         self.vel.x = 0.0;
 
@@ -69,6 +67,7 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
 
             self.direction = Dir::Left;
         }
+
         if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
             self.vel.x += self.player_speed;
             right_pressed = true;
@@ -88,18 +87,40 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             if self.vel.x > 0.0 {
                 self.pos.x = x - self.size.x;
 
-                // If right is pressed and the player is falling
                 if right_pressed && self.vel.y > 0.0 {
                     self.vel.y = 0.0;
+                }
+
+                if right_pressed {
+                    self.climbing = true;
                 }
             } else {
                 self.pos.x = x + width;
 
-                // If right is pressed and the player is falling
                 if left_pressed && self.vel.y > 0.0 {
                     self.vel.y = 0.0;
                 }
+
+                if left_pressed {
+                    self.climbing = true;
+                }
             }
+        }
+
+        if (is_key_pressed(KeyCode::Space)
+            || is_key_pressed(KeyCode::W)
+            || is_key_pressed(KeyCode::Up))
+            && !self.jumped
+        {
+            self.vel.y -= self.jump;
+            self.jumped = true;
+        }
+
+        if self.climbing
+            && (is_key_down(KeyCode::Space) || is_key_down(KeyCode::W) || is_key_down(KeyCode::Up))
+        {
+            self.direction = Dir::Up;
+            self.vel.y = -self.climb_speed;
         }
 
         self.vel.y += self.acc_y;
@@ -111,7 +132,7 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             if self.vel.y > 0.0 {
                 self.pos.y = y - self.size.y;
                 self.is_on_floor = true;
-                self.jump_count = 0;
+                self.jumped = false;
             } else {
                 self.pos.y = y + height;
             }
@@ -187,29 +208,38 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         None
     }
 
-    pub fn draw(&self, left: &Texture2D, right: &Texture2D) {
+    fn draw_tex(&self, tex: &Texture2D) {
+        draw_texture_ex(
+            &tex,
+            self.pos.x,
+            self.pos.y,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(self.size.x, self.size.y)),
+                ..Default::default()
+            },
+        )
+    }
+
+    pub fn draw(
+        &self,
+        left: &Texture2D,
+        right: &Texture2D,
+        left_walk: &Texture2D,
+        right_walk: &Texture2D,
+        left_idle_climb: &Texture2D,
+       right_idle_climb: &Texture2D,
+       left_climb: &GifAnimation,
+       right_climb: &GifAnimation,
+
+    ),
+     {
         if self.direction == Dir::Left {
-            draw_texture_ex(
-                left,
-                self.pos.x,
-                self.pos.y,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(self.size.x, self.size.y)),
-                    ..Default::default()
-                },
-            )
-        } else {
-            draw_texture_ex(
-                right,
-                self.pos.x,
-                self.pos.y,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(self.size.x, self.size.y)),
-                    ..Default::default()
-                },
-            )
+            self.draw_tex(left);
+        } else if self.direction == Dir::Right {
+            self.draw_tex(right);
+        } else if self.direction == Dir::Up {
+            self.draw_tex(up);
         }
     }
 }

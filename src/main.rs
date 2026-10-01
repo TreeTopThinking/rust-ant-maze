@@ -60,8 +60,6 @@ async fn main() {
     let rock_tex = load_asset("rock.png").await;
     let bush_left_tex = load_asset("bush_left.png").await;
     let bush_right_tex = load_asset("bush_right.png").await;
-    let player_left_tex = load_asset("player_left.png").await;
-    let player_right_tex = load_asset("player_right.png").await;
 
     // Bundle the assets together with an Assets struct
     let assets = Assets::new(
@@ -79,6 +77,11 @@ async fn main() {
         bush_left_tex,
         bush_right_tex,
     );
+
+    let player_left_tex = load_asset("player_left.png").await;
+    let player_right_tex = load_asset("player_right.png").await;
+    let player_left_climb_tex = GifAnimation::load("player_left_climb.gif").await;
+    let player_right_climb_tex = GifAnimation::load("player_right_climb.gif").await;
 
     let ambiance = load_sound("ambiance.wav")
         .await
@@ -118,7 +121,7 @@ async fn main() {
         clear_background(DARKBROWN);
 
         maze_gen.draw(&assets, size);
-        player.draw(&player_left_tex, &player_right_tex);
+        player.draw();
 
         next_frame().await;
     }

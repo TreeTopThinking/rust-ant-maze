@@ -15,6 +15,7 @@ use macroquad::{
     audio::{PlaySoundParams, load_sound, play_sound},
     prelude::*,
 };
+use quad_gif::GifAnimation;
 
 const COLS: usize = 21;
 const ROWS: usize = 21;
@@ -80,8 +81,8 @@ async fn main() {
 
     let player_left_tex = load_asset("player_left.png").await;
     let player_right_tex = load_asset("player_right.png").await;
-    let player_left_climb_tex = GifAnimation::load("player_left_climb.gif").await;
-    let player_right_climb_tex = GifAnimation::load("player_right_climb.gif").await;
+    let player_left_climb_tex = GifAnimation::load("player_left_climb.gif".to_string()).await;
+    let player_right_climb_tex = GifAnimation::load("player_right_climb.gif".to_string()).await;
 
     let ambiance = load_sound("ambiance.wav")
         .await

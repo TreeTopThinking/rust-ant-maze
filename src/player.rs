@@ -1,6 +1,6 @@
 use crate::cell::Cell;
 use macroquad::prelude::*;
-use quadgif::GifAnimation;
+use quad_gif::GifAnimation;
 
 #[derive(PartialEq)]
 enum Dir {

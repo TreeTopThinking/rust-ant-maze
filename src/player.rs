@@ -1,11 +1,8 @@
 use crate::cell::Cell;
-use macroquad::{
-    audio::{PlaySoundParams, Sound, play_sound},
-    prelude::*,
-};
+use macroquad::{audio::*, prelude::*};
 use quad_gif::GifAnimation;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq)]
 enum Dir {
     Up,
     Down,
@@ -21,7 +18,6 @@ pub struct Player<const COLS: usize, const ROWS: usize> {
     vel: Vec2,
     acc_y: f32,
     jump: f32,
-    jumped: bool,
     player_speed: f32,
     climb_speed: f32,
     cells: [[Cell; COLS]; ROWS],
@@ -29,6 +25,7 @@ pub struct Player<const COLS: usize, const ROWS: usize> {
     is_on_floor: bool,
     direction: Dir,
     climbing: bool,
+    was_walking_or_climbing: bool,
 }
 
 impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
@@ -49,7 +46,6 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             vel: vec2(0.0, 0.0),
             acc_y: gravity,
             jump: 0.9,
-            jumped: false,
             player_speed: 0.8,
             climb_speed: 0.8,
             cells: cells,
@@ -57,12 +53,14 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             is_on_floor: false,
             direction: Dir::Left,
             climbing: false,
+            was_walking_or_climbing: false,
         }
     }
 
     pub fn update(&mut self) {
+        self.was_walking_or_climbing =
+            (self.is_on_floor && self.vel.x != 0.0) || (self.climbing && self.vel.y < 0.0);
         self.climbing = false;
-
         self.vel.x = 0.0;
 
         let mut left_pressed = false;
@@ -119,10 +117,9 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         if (is_key_pressed(KeyCode::Space)
             || is_key_pressed(KeyCode::W)
             || is_key_pressed(KeyCode::Up))
-            && !self.jumped
+            && self.is_on_floor
         {
             self.vel.y -= self.jump;
-            self.jumped = true;
         }
 
         if self.climbing
@@ -144,7 +141,6 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             if move_up < move_down {
                 self.pos.y -= move_up;
                 self.is_on_floor = true;
-                self.jumped = false;
             } else {
                 self.pos.y += move_down;
             }
@@ -280,16 +276,37 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             self.draw_tex(right_idle_climb);
         }
     }
-    //
-    //     pub fn play_sounds(&self, walking_sound: &Sound, jump_sound: &Sound) {
-    //         if self.climbing {
-    //             play_sound(
-    //                 walking_sound,
-    //                 PlaySoundParams {
-    //                     looped: false,
-    //                     volume: 0.5,
-    //                 },
-    //             );
-    //         }
-    //     }
+
+    pub fn play_sounds(&self, walking_sound: &Sound, jump_sound: &Sound) {
+        if (is_key_pressed(KeyCode::Space)
+            || is_key_pressed(KeyCode::W)
+            || is_key_pressed(KeyCode::Up))
+            && self.is_on_floor
+        {
+            play_sound(
+                jump_sound,
+                PlaySoundParams {
+                    looped: false,
+                    volume: 0.3,
+                },
+            );
+        }
+
+        let is_walking_or_climbing =
+            (self.is_on_floor && self.vel.x != 0.0) || (self.climbing && self.vel.y < 0.0);
+
+        if !self.was_walking_or_climbing && is_walking_or_climbing {
+            play_sound(
+                walking_sound,
+                PlaySoundParams {
+                    looped: true,
+                    volume: 0.25,
+                },
+            );
+        }
+
+        if self.was_walking_or_climbing && !is_walking_or_climbing {
+            stop_sound(walking_sound);
+        }
+    }
 }

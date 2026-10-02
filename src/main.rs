@@ -104,12 +104,12 @@ async fn main() {
     let ambiance_sound = load_sound("ambiance.wav")
         .await
         .expect("Failed to load `ambiance.wav`");
-    let walking_sound = load_sound("ambiance.wav")
+    let walking_sound = load_sound("walking.wav")
         .await
-        .expect("Failed to load `ambiance.wav`");
-    let jump_sound = load_sound("ambiance.wav")
+        .expect("Failed to load `walking.wav`");
+    let jump_sound = load_sound("jump.wav")
         .await
-        .expect("Failed to load `ambiance.wav`");
+        .expect("Failed to load `jump.wav`");
 
     let mut player = Player::<COLS, ROWS>::new(
         cells,
@@ -137,6 +137,7 @@ async fn main() {
     );
 
     loop {
+        player.play_sounds(&walking_sound, &jump_sound);
         player.update();
 
         if playing {

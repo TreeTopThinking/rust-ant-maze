@@ -28,6 +28,16 @@ async fn load_asset(file_name: &str) -> Texture2D {
         .expect("Failed to load `{file_name}`")
 }
 
+async fn load_gif(files_name: &str, frame_delay: f32) -> GifAnimation {
+    let mut anim = GifAnimation::load(files_name.to_string()).await;
+
+    for frame in &mut anim.frames {
+        frame.delay = frame_delay;
+    }
+
+    anim
+}
+
 fn window_conf() -> Conf {
     Conf {
         window_title: String::from("Ant Maze"),
@@ -42,10 +52,13 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let size = screen_width() as i32 / COLS as i32;
+    let mut playing = true;
 
     set_pc_assets_folder("assets");
-    let mut maze_gen = AbMazeGen::<COLS, ROWS>::new();
+    let mut maze_gen = DfsMazeGen::<COLS, ROWS>::new();
     let cells = maze_gen.generate();
+    let anim_fps = 5;
+    let anim_frame_delay = 1.0 / anim_fps as f32;
 
     // Load textures
     let dirt_1_tex = load_asset("dirt_1.png").await;
@@ -81,10 +94,20 @@ async fn main() {
 
     let player_left_tex = load_asset("player_left.png").await;
     let player_right_tex = load_asset("player_right.png").await;
-    let player_left_climb_tex = GifAnimation::load("player_left_climb.gif".to_string()).await;
-    let player_right_climb_tex = GifAnimation::load("player_right_climb.gif".to_string()).await;
+    let player_left_idle_climb_tex = load_asset("player_left_idle_climb.png").await;
+    let player_right_idle_climb_tex = load_asset("player_right_idle_climb.png").await;
+    let mut player_left_climb_anim = load_gif("player_left_climb.gif", anim_frame_delay).await;
+    let mut player_right_climb_anim = load_gif("player_right_climb.gif", anim_frame_delay).await;
+    let mut player_left_walk_anim = load_gif("player_left_walk.gif", anim_frame_delay).await;
+    let mut player_right_walk_anim = load_gif("player_right_walk.gif", anim_frame_delay).await;
 
-    let ambiance = load_sound("ambiance.wav")
+    let ambiance_sound = load_sound("ambiance.wav")
+        .await
+        .expect("Failed to load `ambiance.wav`");
+    let walking_sound = load_sound("ambiance.wav")
+        .await
+        .expect("Failed to load `ambiance.wav`");
+    let jump_sound = load_sound("ambiance.wav")
         .await
         .expect("Failed to load `ambiance.wav`");
 
@@ -106,7 +129,7 @@ async fn main() {
     };
 
     play_sound(
-        &ambiance,
+        &ambiance_sound,
         PlaySoundParams {
             looped: true,
             volume: 1.0,
@@ -115,14 +138,36 @@ async fn main() {
 
     loop {
         player.update();
-        camera.target = camera.target.lerp(player.pos, 0.01);
 
-        set_camera(&camera);
+        if playing {
+            camera.target = camera.target.lerp(player.pos, 0.01);
+
+            set_camera(&camera);
+        }
 
         clear_background(DARKBROWN);
 
         maze_gen.draw(&assets, size);
-        player.draw();
+
+        player.draw(
+            &player_left_tex,
+            &player_right_tex,
+            &mut player_left_walk_anim,
+            &mut player_right_walk_anim,
+            &player_left_idle_climb_tex,
+            &player_right_idle_climb_tex,
+            &mut player_left_climb_anim,
+            &mut player_right_climb_anim,
+        );
+
+        if player.get_i_j() == (1, 1) {
+            playing = false;
+            set_default_camera();
+        }
+
+        if !playing {
+            draw_text("You Won!!!", 300.0, 500.0, 100.0, GREEN);
+        }
 
         next_frame().await;
     }

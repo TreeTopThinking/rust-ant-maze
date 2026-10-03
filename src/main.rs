@@ -19,7 +19,7 @@ use quad_gif::GifAnimation;
 
 const COLS: usize = 21;
 const ROWS: usize = 21;
-const GRAV: f32 = 0.01;
+const GRAV: f32 = 2000.0;
 const ZOOM: f32 = 3.0;
 
 async fn load_asset(file_name: &str) -> Texture2D {
@@ -52,12 +52,13 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let size = screen_width() as i32 / COLS as i32;
-    let mut playing = true;
+    let mut player_won = false;
+    let dt = get_frame_time().min(0.05);
 
     set_pc_assets_folder("assets");
-    let mut maze_gen = DfsMazeGen::<COLS, ROWS>::new();
-    let cells = maze_gen.generate();
-    let anim_fps = 5;
+    let mut maze_gen = AbMazeGen::<COLS, ROWS>::new();
+    let mut cells = maze_gen.generate();
+    let anim_fps = 10;
     let anim_frame_delay = 1.0 / anim_fps as f32;
 
     // Load textures
@@ -110,6 +111,9 @@ async fn main() {
     let jump_sound = load_sound("jump.wav")
         .await
         .expect("Failed to load `jump.wav`");
+    let land_sound = load_sound("land.wav")
+        .await
+        .expect("Failed to load `land.wav`");
 
     let mut player = Player::<COLS, ROWS>::new(
         cells,
@@ -118,7 +122,7 @@ async fn main() {
         (ROWS - 2) as f32 * size as f32,
         player_left_tex.width() * 0.03,
         player_left_tex.height() * 0.03,
-        GRAV,
+        GRAV * dt,
     );
 
     let mut camera = Camera2D {
@@ -137,11 +141,11 @@ async fn main() {
     );
 
     loop {
-        player.play_sounds(&walking_sound, &jump_sound);
-        player.update();
+        player.update(dt);
+        player.play_sounds(&walking_sound, &jump_sound, &land_sound);
 
-        if playing {
-            camera.target = camera.target.lerp(player.pos, 0.01);
+        if !player_won {
+            camera.target = camera.target.lerp(player.pos, 6.0 * dt);
 
             set_camera(&camera);
         }
@@ -162,12 +166,24 @@ async fn main() {
         );
 
         if player.get_i_j() == (1, 1) {
-            playing = false;
+            player_won = true;
             set_default_camera();
         }
 
-        if !playing {
+        if player_won {
             draw_text("You Won!!!", 300.0, 500.0, 100.0, GREEN);
+            draw_text("r to reset", 400.0, 550.0, 30.0, WHITE);
+
+            if is_key_pressed(KeyCode::R) {
+                maze_gen.reset();
+                maze_gen.generate();
+                player.pos.x = (COLS - 2) as f32 * size as f32;
+                player.pos.y = (ROWS - 2) as f32 * size as f32;
+                player.cells = maze_gen.cells;
+                set_camera(&camera);
+                camera.target = player.pos;
+                player_won = false;
+            }
         }
 
         next_frame().await;

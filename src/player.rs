@@ -20,9 +20,10 @@ pub struct Player<const COLS: usize, const ROWS: usize> {
     jump: f32,
     player_speed: f32,
     climb_speed: f32,
-    cells: [[Cell; COLS]; ROWS],
+    pub cells: [[Cell; COLS]; ROWS],
     cell_size: f32,
     is_on_floor: bool,
+    was_on_floor: bool,
     direction: Dir,
     climbing: bool,
     was_walking_or_climbing: bool,
@@ -45,21 +46,20 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             climbing_size: vec2(walking_height, walking_width),
             vel: vec2(0.0, 0.0),
             acc_y: gravity,
-            jump: 0.9,
-            player_speed: 0.8,
-            climb_speed: 0.8,
+            jump: 50.0,
+            player_speed: 50.0,
+            climb_speed: 50.0,
             cells: cells,
             cell_size: cell_size,
             is_on_floor: false,
+            was_on_floor: false,
             direction: Dir::Left,
             climbing: false,
             was_walking_or_climbing: false,
         }
     }
 
-    pub fn update(&mut self) {
-        self.was_walking_or_climbing =
-            (self.is_on_floor && self.vel.x != 0.0) || (self.climbing && self.vel.y < 0.0);
+    pub fn update(&mut self, dt: f32) {
         self.climbing = false;
         self.vel.x = 0.0;
 
@@ -80,7 +80,7 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             self.direction = Dir::Right;
         }
 
-        self.pos.x += self.vel.x;
+        self.pos.x += self.vel.x * dt;
 
         if let Some((i, j)) = self.check_collision() {
             let (x, _y, width, _height) = self.get_cell_info(i, j);
@@ -128,8 +128,8 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             self.vel.y = -self.climb_speed;
         }
 
-        self.vel.y += self.acc_y;
-        self.pos.y += self.vel.y;
+        self.vel.y += self.acc_y * dt;
+        self.pos.y += self.vel.y * dt;
 
         self.is_on_floor = false;
         if let Some((i, j)) = self.check_collision() {
@@ -277,30 +277,40 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         }
     }
 
-    pub fn play_sounds(&self, walking_sound: &Sound, jump_sound: &Sound) {
+    pub fn play_sounds(&mut self, walking_sound: &Sound, jump_sound: &Sound, land_sound: &Sound) {
+        let is_walking_or_climbing =
+            (self.is_on_floor && self.vel.x != 0.0) || (self.climbing && self.vel.y < 0.0);
+
         if (is_key_pressed(KeyCode::Space)
             || is_key_pressed(KeyCode::W)
             || is_key_pressed(KeyCode::Up))
-            && self.is_on_floor
+            && self.was_on_floor
         {
             play_sound(
                 jump_sound,
                 PlaySoundParams {
                     looped: false,
-                    volume: 0.3,
+                    volume: 0.2,
                 },
             );
         }
 
-        let is_walking_or_climbing =
-            (self.is_on_floor && self.vel.x != 0.0) || (self.climbing && self.vel.y < 0.0);
+        if !self.was_on_floor && self.is_on_floor {
+            play_sound(
+                land_sound,
+                PlaySoundParams {
+                    looped: false,
+                    volume: 0.4,
+                },
+            );
+        }
 
         if !self.was_walking_or_climbing && is_walking_or_climbing {
             play_sound(
                 walking_sound,
                 PlaySoundParams {
                     looped: true,
-                    volume: 0.25,
+                    volume: 0.3,
                 },
             );
         }
@@ -308,5 +318,8 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         if self.was_walking_or_climbing && !is_walking_or_climbing {
             stop_sound(walking_sound);
         }
+
+        self.was_walking_or_climbing = is_walking_or_climbing;
+        self.was_on_floor = self.is_on_floor;
     }
 }

@@ -16,6 +16,8 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
         i >= 0 && j >= 0 && i < COLS as i32 && j < ROWS as i32
     }
 
+    fn reset(&mut self);
+
     fn finished(&self) -> bool {
         for i in (1..COLS as usize).step_by(2) {
             for j in (1..ROWS as usize).step_by(2) {
@@ -112,6 +114,10 @@ impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for DfsMazeGen<CO
     fn is_wall(&self, i: usize, j: usize) -> bool {
         self.cells[i][j].wall
     }
+
+    fn reset(&mut self) {
+        *self = Self::new();
+    }
 }
 
 impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for AbMazeGen<COLS, ROWS> {
@@ -125,5 +131,9 @@ impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for AbMazeGen<COL
 
     fn is_wall(&self, i: usize, j: usize) -> bool {
         self.cells[i][j].wall
+    }
+
+    fn reset(&mut self) {
+        *self = Self::new();
     }
 }

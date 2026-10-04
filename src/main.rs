@@ -1,16 +1,20 @@
 mod ab_gen;
 mod assets;
 mod cell;
+mod circle;
 mod dfs_gen;
 mod maze_gen;
 mod player;
 mod tex;
+mod timer;
 
 use crate::ab_gen::AbMazeGen;
 use crate::assets::Assets;
+use crate::circle::Circle;
 use crate::dfs_gen::DfsMazeGen;
 use crate::maze_gen::MazeGen;
 use crate::player::Player;
+use crate::timer::Timer;
 use macroquad::{
     audio::{PlaySoundParams, load_sound, play_sound},
     prelude::*,
@@ -19,7 +23,7 @@ use quad_gif::GifAnimation;
 
 const COLS: usize = 21;
 const ROWS: usize = 21;
-const GRAV: f32 = 2000.0;
+const GRAV: f32 = 200.0;
 const ZOOM: f32 = 3.0;
 
 async fn load_asset(file_name: &str) -> Texture2D {
@@ -53,11 +57,12 @@ fn window_conf() -> Conf {
 async fn main() {
     let size = screen_width() as i32 / COLS as i32;
     let mut player_won = false;
-    let dt = get_frame_time().min(0.05);
+    let mut dt: f32;
+    let mut timer = Timer::new();
 
     set_pc_assets_folder("assets");
     let mut maze_gen = AbMazeGen::<COLS, ROWS>::new();
-    let mut cells = maze_gen.generate();
+    let cells = maze_gen.generate();
     let anim_fps = 10;
     let anim_frame_delay = 1.0 / anim_fps as f32;
 
@@ -118,16 +123,28 @@ async fn main() {
     let mut player = Player::<COLS, ROWS>::new(
         cells,
         size as f32,
-        (COLS - 2) as f32 * size as f32,
-        (ROWS - 2) as f32 * size as f32,
+        // (COLS - 2) as f32 * size as f32,
+        // (ROWS - 2) as f32 * size as f32,
+        1.0 * size as f32,
+        1.0 * size as f32,
         player_left_tex.width() * 0.03,
         player_left_tex.height() * 0.03,
-        GRAV * dt,
+        GRAV,
     );
 
     let mut camera = Camera2D {
         target: player.pos,
         zoom: vec2(2.0 / screen_width() * ZOOM, 2.0 / screen_height() * ZOOM),
+
+        ..Default::default()
+    };
+
+    let win_camera = Camera2D {
+        target: vec2(
+            (COLS as f32 * size as f32) / 2.0,
+            (ROWS as f32 * size as f32) / 2.0,
+        ),
+        zoom: vec2(2.0 / screen_width() / 1.15, 2.0 / screen_height() / 1.15),
 
         ..Default::default()
     };
@@ -140,7 +157,42 @@ async fn main() {
         },
     );
 
+    let x_range = -200.0..1200.0;
+    let y_range = -300.0..0.0;
+    let mut circles = [Circle::new(x_range.clone(), y_range.clone()); 500];
+    for circle in &mut circles {
+        *circle = Circle::new(x_range.clone(), y_range.clone());
+    }
+
+    let mut win_timer = 0.0;
+
     loop {
+        dt = get_frame_time().min(0.05);
+
+        if player.pos.y < 0.0 && !player_won {
+            win_timer += dt;
+
+            if win_timer > 2.0 {
+                player_won = true;
+                set_camera(&win_camera);
+            }
+        } else {
+            win_timer = 0.0;
+        }
+
+        clear_background(DARKBROWN);
+        draw_rectangle(
+            x_range.start,
+            y_range.start,
+            x_range.end - x_range.start,
+            y_range.end - y_range.start,
+            SKYBLUE,
+        );
+
+        for circle in &circles {
+            circle.draw_blurry();
+        }
+
         player.update(dt);
         player.play_sounds(&walking_sound, &jump_sound, &land_sound);
 
@@ -150,7 +202,9 @@ async fn main() {
             set_camera(&camera);
         }
 
-        clear_background(DARKBROWN);
+        if player.pos.y > 0.0 {
+            timer.update();
+        }
 
         maze_gen.draw(&assets, size);
 
@@ -164,11 +218,6 @@ async fn main() {
             &mut player_left_climb_anim,
             &mut player_right_climb_anim,
         );
-
-        if player.get_i_j() == (1, 1) {
-            player_won = true;
-            set_default_camera();
-        }
 
         if player_won {
             draw_text("You Won!!!", 300.0, 500.0, 100.0, GREEN);
@@ -184,6 +233,14 @@ async fn main() {
                 camera.target = player.pos;
                 player_won = false;
             }
+        }
+
+        set_default_camera();
+
+        if player.pos.y < 0.0 && !player_won {
+            timer.blink();
+        } else {
+            timer.draw();
         }
 
         next_frame().await;

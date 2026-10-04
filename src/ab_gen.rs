@@ -76,6 +76,7 @@ impl<const COLS: usize, const ROWS: usize> AbMazeGen<{ COLS }, { ROWS }> {
             }
         }
 
+        self.cells[1][0].wall = false;
         MazeGen::set_tex(self);
 
         self.cells

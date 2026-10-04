@@ -35,7 +35,8 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
             for j in 0..ROWS {
                 let wall = self.is_wall(i, j);
                 let grass =
-                    wall && Self::in_bounds(i as i32, j as i32 - 1) && !self.is_wall(i, j - 1);
+                    (wall && Self::in_bounds(i as i32, j as i32 - 1) && !self.is_wall(i, j - 1))
+                        || (j == 0 && i != 1);
                 let add_artifact =
                     !wall && Self::in_bounds(i as i32, j as i32 + 1) && self.is_wall(i, j + 1);
                 let left = Self::in_bounds(i as i32 - 1, j as i32) && self.is_wall(i - 1, j);

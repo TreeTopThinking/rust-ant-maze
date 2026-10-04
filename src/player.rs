@@ -4,8 +4,6 @@ use quad_gif::GifAnimation;
 
 #[derive(PartialEq)]
 enum Dir {
-    Up,
-    Down,
     Left,
     Right,
 }
@@ -46,9 +44,9 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             climbing_size: vec2(walking_height, walking_width),
             vel: vec2(0.0, 0.0),
             acc_y: gravity,
-            jump: 50.0,
-            player_speed: 50.0,
-            climb_speed: 50.0,
+            jump: 130.0,
+            player_speed: 130.0,
+            climb_speed: 130.0,
             cells: cells,
             cell_size: cell_size,
             is_on_floor: false,
@@ -146,10 +144,6 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             }
 
             self.vel.y = 0.0;
-        }
-
-        if self.pos.y < 0.0 {
-            self.pos.y = 0.0;
         }
     }
 

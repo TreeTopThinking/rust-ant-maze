@@ -168,7 +168,7 @@ async fn main() {
         dt = get_frame_time().min(0.05);
 
         if !player_won {
-            camera.target = camera.target.lerp(player.pos, 6.0 * dt);
+            camera.target = camera.target.lerp(player.pos, 4.0 * dt);
 
             set_camera(&camera);
         } else {
@@ -220,7 +220,7 @@ async fn main() {
         );
 
         if player_won {
-            draw_text("You Won!!!", 300.0, 500.0, 100.0, GREEN);
+            draw_text("You Won!", 300.0, 500.0, 100.0, GREEN);
             draw_text("r to reset", 400.0, 550.0, 30.0, WHITE);
 
             if is_key_pressed(KeyCode::R) {
@@ -232,17 +232,23 @@ async fn main() {
                 set_camera(&camera);
                 camera.target = player.pos;
                 player_won = false;
-                timer = Timer::new();
+                timer.reset();
             }
         }
 
         set_default_camera();
 
-        if player.pos.y < 0.0 && !player_won {
-            timer.blink();
-        } else {
-            timer.draw();
+        if player_won && timer.time == timer.best_time {
+            draw_text("New Best!!!", 270.0, 420.0, 100.0, ORANGE);
         }
+
+        if player.pos.y < 0.0 && !player_won {
+            timer.blink_time();
+            timer.update_best();
+        } else {
+            timer.draw_time();
+        }
+        timer.draw_best();
 
         next_frame().await;
     }

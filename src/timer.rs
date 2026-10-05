@@ -1,5 +1,4 @@
 use macroquad::prelude::*;
-use std::sync::atomic::AtomicU32;
 
 pub struct Timer {
     start_time: f32,

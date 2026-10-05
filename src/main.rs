@@ -123,10 +123,8 @@ async fn main() {
     let mut player = Player::<COLS, ROWS>::new(
         cells,
         size as f32,
-        // (COLS - 2) as f32 * size as f32,
-        // (ROWS - 2) as f32 * size as f32,
-        1.0 * size as f32,
-        1.0 * size as f32,
+        (COLS - 2) as f32 * size as f32,
+        (ROWS - 2) as f32 * size as f32,
         player_left_tex.width() * 0.03,
         player_left_tex.height() * 0.03,
         GRAV,
@@ -169,6 +167,14 @@ async fn main() {
     loop {
         dt = get_frame_time().min(0.05);
 
+        if !player_won {
+            camera.target = camera.target.lerp(player.pos, 6.0 * dt);
+
+            set_camera(&camera);
+        } else {
+            set_camera(&win_camera);
+        }
+
         if player.pos.y < 0.0 && !player_won {
             win_timer += dt;
 
@@ -195,12 +201,6 @@ async fn main() {
 
         player.update(dt);
         player.play_sounds(&walking_sound, &jump_sound, &land_sound);
-
-        if !player_won {
-            camera.target = camera.target.lerp(player.pos, 6.0 * dt);
-
-            set_camera(&camera);
-        }
 
         if player.pos.y > 0.0 {
             timer.update();
@@ -232,6 +232,7 @@ async fn main() {
                 set_camera(&camera);
                 camera.target = player.pos;
                 player_won = false;
+                timer = Timer::new();
             }
         }
 

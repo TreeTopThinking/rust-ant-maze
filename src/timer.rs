@@ -47,7 +47,26 @@ impl Timer {
     }
 
     pub fn draw_best(&self) {
-        let str_best = format!("Best: {:.1}", self.best_time);
-        draw_text(str_best, 150.0, screen_height() - 10.0, 50.0, ORANGE);
+        if self.best_time != f32::INFINITY {
+            let str_best = format!("Best: {:.1}", self.best_time);
+            draw_text(str_best, 150.0, screen_height() - 10.0, 50.0, ORANGE);
+        }
+    }
+
+    pub fn wave_best(&mut self) {
+        if self.best_time != f32::INFINITY {
+            let str_best = format!("Best: {:.1}", self.best_time);
+            let y = screen_height() - 20.0 + (self.count as f32 / 100.0).cos() * 10.0;
+            draw_text(str_best, 150.0, y, 50.0, ORANGE);
+
+            self.count += 1;
+        }
+    }
+
+    pub fn wave_new_best(&mut self) {
+        let y = 410.0 + (self.count as f32 / 100.0).cos() * 20.0;
+        draw_text("New Best!!!", 270.0, y, 100.0, ORANGE);
+
+        self.count += 1;
     }
 }

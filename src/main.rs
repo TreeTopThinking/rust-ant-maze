@@ -1,7 +1,6 @@
 mod ab_gen;
 mod assets;
 mod cell;
-mod circle;
 mod dfs_gen;
 mod maze_gen;
 mod player;
@@ -10,7 +9,6 @@ mod timer;
 
 use crate::ab_gen::AbMazeGen;
 use crate::assets::Assets;
-use crate::circle::Circle;
 use crate::dfs_gen::DfsMazeGen;
 use crate::maze_gen::MazeGen;
 use crate::player::Player;
@@ -57,6 +55,7 @@ fn window_conf() -> Conf {
 async fn main() {
     let size = screen_width() as i32 / COLS as i32;
     let mut player_won = false;
+    let mut player_moved = false;
     let mut dt: f32;
     let mut timer = Timer::new();
 
@@ -107,6 +106,8 @@ async fn main() {
     let mut player_left_walk_anim = load_gif("player_left_walk.gif", anim_frame_delay).await;
     let mut player_right_walk_anim = load_gif("player_right_walk.gif", anim_frame_delay).await;
 
+    let sky_tex = load_asset("sky.png").await;
+
     let ambiance_sound = load_sound("ambiance.wav")
         .await
         .expect("Failed to load `ambiance.wav`");
@@ -155,17 +156,14 @@ async fn main() {
         },
     );
 
-    let x_range = -200.0..1200.0;
-    let y_range = -300.0..0.0;
-    let mut circles = [Circle::new(x_range.clone(), y_range.clone()); 500];
-    for circle in &mut circles {
-        *circle = Circle::new(x_range.clone(), y_range.clone());
-    }
-
     let mut win_timer = 0.0;
 
     loop {
         dt = get_frame_time().min(0.05);
+
+        if !get_keys_pressed().is_empty() {
+            player_moved = true;
+        }
 
         if !player_won {
             camera.target = camera.target.lerp(player.pos, 4.0 * dt);
@@ -180,29 +178,27 @@ async fn main() {
 
             if win_timer > 2.0 {
                 player_won = true;
-                set_camera(&win_camera);
             }
         } else {
             win_timer = 0.0;
         }
 
         clear_background(DARKBROWN);
-        draw_rectangle(
-            x_range.start,
-            y_range.start,
-            x_range.end - x_range.start,
-            y_range.end - y_range.start,
-            SKYBLUE,
+        draw_texture_ex(
+            &sky_tex,
+            -200.0,
+            -300.0,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(1500.0, 300.0)),
+                ..Default::default()
+            },
         );
-
-        for circle in &circles {
-            circle.draw_blurry();
-        }
 
         player.update(dt);
         player.play_sounds(&walking_sound, &jump_sound, &land_sound);
 
-        if player.pos.y > 0.0 {
+        if player.pos.y > 0.0 && player_moved {
             timer.update();
         }
 
@@ -233,13 +229,21 @@ async fn main() {
                 camera.target = player.pos;
                 player_won = false;
                 timer.reset();
+                player_moved = false;
             }
         }
 
         set_default_camera();
 
-        if player_won && timer.time == timer.best_time {
-            draw_text("New Best!!!", 270.0, 420.0, 100.0, ORANGE);
+        if !player_moved {
+            draw_text("Press any key to start!", 250.0, 450.0, 50.0, WHITE);
+            draw_text(
+                "Get to the surface as quickly as possible!",
+                50.0,
+                600.0,
+                50.0,
+                WHITE,
+            );
         }
 
         if player.pos.y < 0.0 && !player_won {
@@ -248,7 +252,13 @@ async fn main() {
         } else {
             timer.draw_time();
         }
-        timer.draw_best();
+
+        if player_won && timer.time == timer.best_time {
+            timer.wave_new_best();
+            timer.wave_best();
+        } else if !player_won || (player_won && timer.time != timer.best_time) {
+            timer.draw_best();
+        }
 
         next_frame().await;
     }

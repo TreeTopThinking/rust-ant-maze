@@ -45,8 +45,8 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             vel: vec2(0.0, 0.0),
             acc_y: gravity,
             jump: 130.0,
-            player_speed: 130.0,
-            climb_speed: 130.0,
+            player_speed: 140.0,
+            climb_speed: 140.0,
             cells: cells,
             cell_size: cell_size,
             is_on_floor: false,
@@ -60,6 +60,13 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
     pub fn update(&mut self, dt: f32) {
         self.climbing = false;
         self.vel.x = 0.0;
+        self.player_speed = 130.0;
+        self.climb_speed = 130.0;
+
+        if is_key_down(KeyCode::Space) {
+            self.player_speed = 220.0;
+            self.climb_speed = 220.0;
+        }
 
         let mut left_pressed = false;
         let mut right_pressed = false;
@@ -112,11 +119,7 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
             self.size = self.walking_size;
         }
 
-        if (is_key_pressed(KeyCode::Space)
-            || is_key_pressed(KeyCode::W)
-            || is_key_pressed(KeyCode::Up))
-            && self.is_on_floor
-        {
+        if (is_key_pressed(KeyCode::W) || is_key_pressed(KeyCode::Up)) && self.is_on_floor {
             self.vel.y -= self.jump;
         }
 

@@ -71,14 +71,16 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         let mut left_pressed = false;
         let mut right_pressed = false;
 
-        if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+        if (is_key_down(KeyCode::A) || is_key_down(KeyCode::Left)) && self.pos.x > 0.0 {
             self.vel.x -= self.player_speed;
             left_pressed = true;
 
             self.direction = Dir::Left;
         }
 
-        if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+        if (is_key_down(KeyCode::D) || is_key_down(KeyCode::Right))
+            && self.pos.x < screen_width() - self.size.x
+        {
             self.vel.x += self.player_speed;
             right_pressed = true;
 

@@ -1,5 +1,6 @@
 mod ab_gen;
 mod assets;
+mod background;
 mod cell;
 mod dfs_gen;
 mod maze_gen;
@@ -9,6 +10,7 @@ mod timer;
 
 use crate::ab_gen::AbMazeGen;
 use crate::assets::Assets;
+use crate::background::Background;
 use crate::dfs_gen::DfsMazeGen;
 use crate::maze_gen::MazeGen;
 use crate::player::Player;
@@ -138,6 +140,10 @@ async fn main() {
         ..Default::default()
     };
 
+    const BACKGROUND_ROWS: usize = ROWS + 10;
+    const BACKGROUND_COLS: usize = ROWS + 10;
+    let background = Background::<BACKGROUND_ROWS, BACKGROUND_COLS>::new();
+
     let win_camera = Camera2D {
         target: vec2(
             (COLS as f32 * size as f32) / 2.0,
@@ -183,7 +189,7 @@ async fn main() {
             win_timer = 0.0;
         }
 
-        clear_background(DARKBROWN);
+        clear_background(BLACK);
         draw_texture_ex(
             &sky_tex,
             -200.0,
@@ -202,6 +208,7 @@ async fn main() {
             timer.update();
         }
 
+        background.draw(&assets, size);
         maze_gen.draw(&assets, size);
 
         player.draw(

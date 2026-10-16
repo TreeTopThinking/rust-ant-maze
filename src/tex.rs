@@ -20,7 +20,7 @@ pub enum TexKind {
 }
 
 impl TexKind {
-    fn draw_tex(tex: &Texture2D, pos: Vec2, size: i32) {
+    pub fn draw_tex(tex: &Texture2D, pos: Vec2, size: i32) {
         draw_texture_ex(
             tex,
             pos.x,

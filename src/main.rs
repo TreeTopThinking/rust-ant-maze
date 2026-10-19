@@ -286,22 +286,20 @@ async fn main() {
             draw_text("r to reset", 400.0, 550.0, 30.0, WHITE);
         }
 
-        if player_won || player_lost {
-            if is_key_pressed(KeyCode::R) {
-                maze_gen.reset();
-                let grid = maze_gen.generate();
-                hazards = Hazards::new(&hazard_tex, &grid, size);
-                collectibles = Collectibles::new(&collectible_tex, &grid, size);
-                player.pos.x = (COLS - 2) as f32 * size as f32;
-                player.pos.y = (ROWS - 2) as f32 * size as f32;
-                player.cells = maze_gen.grid;
-                set_camera(&camera);
-                camera.target = player.pos;
-                player_won = false;
-                player_lost = false;
-                timer.reset();
-                player_moved = false;
-            }
+        if (player_won || player_lost) && is_key_pressed(KeyCode::R) {
+            maze_gen.reset();
+            let grid = maze_gen.generate();
+            hazards = Hazards::new(&hazard_tex, &grid, size);
+            collectibles = Collectibles::new(&collectible_tex, &grid, size);
+            player.pos.x = (COLS - 2) as f32 * size as f32;
+            player.pos.y = (ROWS - 2) as f32 * size as f32;
+            player.cells = maze_gen.grid;
+            set_camera(&camera);
+            camera.target = player.pos;
+            player_won = false;
+            player_lost = false;
+            timer.reset();
+            player_moved = false;
         }
 
         set_default_camera();
@@ -323,7 +321,7 @@ async fn main() {
                 WHITE,
             );
             draw_text(
-                "But whatever you do don't touch the spikes",
+                "But whatever you do, don't touch the spikes",
                 120.0,
                 700.0,
                 40.0,

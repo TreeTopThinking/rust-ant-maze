@@ -3,23 +3,23 @@ use crate::maze_gen::MazeGen;
 
 // Depth first search maze generator
 pub struct DfsMazeGen<const COLS: usize, const ROWS: usize> {
-    pub cells: [[Cell; COLS]; ROWS],
+    pub grid: [[Cell; COLS]; ROWS],
     current: Cell,
     stack: Vec<Cell>,
 }
 
 impl<const COLS: usize, const ROWS: usize> DfsMazeGen<{ COLS }, { ROWS }> {
     pub fn new() -> Self {
-        let mut cells = [[Cell::new(0, 0); COLS]; ROWS];
+        let mut grid = [[Cell::new(0, 0); COLS]; ROWS];
 
         for i in 0..COLS as usize {
             for j in 0..ROWS as usize {
-                cells[i][j] = Cell::new(i, j);
+                grid[i][j] = Cell::new(i, j);
             }
         }
 
         DfsMazeGen {
-            cells: cells,
+            grid: grid,
             current: Cell::new(1, 1),
             stack: Vec::new(),
         }
@@ -33,18 +33,17 @@ impl<const COLS: usize, const ROWS: usize> DfsMazeGen<{ COLS }, { ROWS }> {
         let left = (self.current.i as i32 - 2, self.current.j as i32);
         let right = (self.current.i as i32 + 2, self.current.j as i32);
 
-        if Self::in_bounds(up.0, up.1) && self.cells[up.0 as usize][up.1 as usize].wall {
-            neighbors.push(self.cells[up.0 as usize][up.1 as usize]);
+        if Self::in_bounds(up.0, up.1) && self.grid[up.0 as usize][up.1 as usize].wall {
+            neighbors.push(self.grid[up.0 as usize][up.1 as usize]);
         }
-        if Self::in_bounds(down.0, down.1) && self.cells[down.0 as usize][down.1 as usize].wall {
-            neighbors.push(self.cells[down.0 as usize][down.1 as usize]);
+        if Self::in_bounds(down.0, down.1) && self.grid[down.0 as usize][down.1 as usize].wall {
+            neighbors.push(self.grid[down.0 as usize][down.1 as usize]);
         }
-        if Self::in_bounds(left.0, left.1) && self.cells[left.0 as usize][left.1 as usize].wall {
-            neighbors.push(self.cells[left.0 as usize][left.1 as usize]);
+        if Self::in_bounds(left.0, left.1) && self.grid[left.0 as usize][left.1 as usize].wall {
+            neighbors.push(self.grid[left.0 as usize][left.1 as usize]);
         }
-        if Self::in_bounds(right.0, right.1) && self.cells[right.0 as usize][right.1 as usize].wall
-        {
-            neighbors.push(self.cells[right.0 as usize][right.1 as usize]);
+        if Self::in_bounds(right.0, right.1) && self.grid[right.0 as usize][right.1 as usize].wall {
+            neighbors.push(self.grid[right.0 as usize][right.1 as usize]);
         }
 
         if neighbors.len() > 0 {
@@ -59,17 +58,17 @@ impl<const COLS: usize, const ROWS: usize> DfsMazeGen<{ COLS }, { ROWS }> {
         let neighbor = self.pick_neighbor();
 
         if neighbor.is_some() {
-            let mut last = self.cells[self.current.i][self.current.j];
+            let mut last = self.grid[self.current.i][self.current.j];
             let mut next = neighbor.unwrap();
-            let mut between = self.cells[(last.i + next.i) / 2][(last.j + next.j) / 2];
+            let mut between = self.grid[(last.i + next.i) / 2][(last.j + next.j) / 2];
 
             last.wall = false;
             between.wall = false;
             next.wall = false;
 
-            self.cells[last.i][last.j] = last;
-            self.cells[between.i][between.j] = between;
-            self.cells[next.i][next.j] = next;
+            self.grid[last.i][last.j] = last;
+            self.grid[between.i][between.j] = between;
+            self.grid[next.i][next.j] = next;
 
             self.current = next;
             self.stack.push(next);
@@ -91,6 +90,6 @@ impl<const COLS: usize, const ROWS: usize> DfsMazeGen<{ COLS }, { ROWS }> {
 
         MazeGen::set_tex(self);
 
-        self.cells
+        self.grid
     }
 }

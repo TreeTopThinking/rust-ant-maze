@@ -2,7 +2,9 @@ mod ab_gen;
 mod assets;
 mod background;
 mod cell;
+mod collectible;
 mod dfs_gen;
+mod hazard;
 mod maze_gen;
 mod player;
 mod tex;
@@ -11,12 +13,14 @@ mod timer;
 use crate::ab_gen::AbMazeGen;
 use crate::assets::Assets;
 use crate::background::Background;
-use crate::dfs_gen::DfsMazeGen;
+use crate::collectible::Collectibles;
+use crate::hazard::Hazards;
 use crate::maze_gen::MazeGen;
 use crate::player::Player;
 use crate::timer::Timer;
+use ::rand::random_range;
 use macroquad::{
-    audio::{PlaySoundParams, load_sound, play_sound},
+    audio::{PlaySoundParams, load_sound, play_sound, play_sound_once, stop_sound},
     prelude::*,
 };
 use quad_gif::GifAnimation;
@@ -57,13 +61,14 @@ fn window_conf() -> Conf {
 async fn main() {
     let size = screen_width() as i32 / COLS as i32;
     let mut player_won = false;
+    let mut player_lost = false;
     let mut player_moved = false;
     let mut dt: f32;
     let mut timer = Timer::new();
 
     set_pc_assets_folder("assets");
     let mut maze_gen = AbMazeGen::<COLS, ROWS>::new();
-    let cells = maze_gen.generate();
+    let grid = maze_gen.generate();
     let anim_fps = 10;
     let anim_frame_delay = 1.0 / anim_fps as f32;
 
@@ -78,6 +83,8 @@ async fn main() {
     let background_2_tex = load_asset("background_2.png").await;
     let background_3_tex = load_asset("background_3.png").await;
     let mushroom_tex = load_asset("mushroom.png").await;
+    let collectible_tex = load_asset("green_mushroom.png").await;
+    let hazard_tex = load_asset("hazard.png").await;
     let rock_tex = load_asset("rock.png").await;
     let bush_left_tex = load_asset("bush_left.png").await;
     let bush_right_tex = load_asset("bush_right.png").await;
@@ -122,9 +129,18 @@ async fn main() {
     let land_sound = load_sound("land.wav")
         .await
         .expect("Failed to load `land.wav`");
+    let collect_sound = load_sound("collect.wav")
+        .await
+        .expect("Failed to load `collect.wav`");
+    let player_lost_sound = load_sound("player_lost.wav")
+        .await
+        .expect("Failed to load `player_lost.wav`");
+    let player_won_sound = load_sound("player_won.wav")
+        .await
+        .expect("Failed to load `player_won.wav`");
 
     let mut player = Player::<COLS, ROWS>::new(
-        cells,
+        grid,
         size as f32,
         (COLS - 2) as f32 * size as f32,
         (ROWS - 2) as f32 * size as f32,
@@ -154,6 +170,9 @@ async fn main() {
         ..Default::default()
     };
 
+    let mut hazards = Hazards::new(&hazard_tex, &grid, size);
+    let mut collectibles = Collectibles::new(&collectible_tex, &grid, size);
+
     play_sound(
         &ambiance_sound,
         PlaySoundParams {
@@ -166,12 +185,13 @@ async fn main() {
 
     loop {
         dt = get_frame_time().min(0.05);
+        let player_won_before = player_won;
 
         if !get_keys_pressed().is_empty() {
             player_moved = true;
         }
 
-        if !player_won {
+        if !player_won && !player_lost {
             camera.target = camera.target.lerp(player.pos, 4.0 * dt);
 
             set_camera(&camera);
@@ -179,7 +199,7 @@ async fn main() {
             set_camera(&win_camera);
         }
 
-        if player.pos.y < 0.0 && !player_won {
+        if player.pos.y < 0.0 && !player_won && !player_lost {
             win_timer += dt;
 
             if win_timer > 2.0 {
@@ -201,16 +221,11 @@ async fn main() {
             },
         );
 
-        player.update(dt);
-        player.play_sounds(&walking_sound, &jump_sound, &land_sound);
-
-        if player.pos.y > 0.0 && player_moved {
-            timer.update();
-        }
-
         background.draw(&assets, size);
         maze_gen.draw(&assets, size);
-
+        hazards.draw();
+        collectibles.colliding(&mut timer, &collect_sound, &player);
+        collectibles.draw();
         player.draw(
             &player_left_tex,
             &player_right_tex,
@@ -222,19 +237,68 @@ async fn main() {
             &mut player_right_climb_anim,
         );
 
+        let was_colliding = hazards.colliding(&player);
+
+        if !player_lost {
+            player.update(dt);
+            player.play_sounds(&walking_sound, &jump_sound, &land_sound);
+        } else {
+            stop_sound(&walking_sound);
+            stop_sound(&jump_sound);
+            stop_sound(&land_sound);
+        }
+
+        if player.pos.y > 0.0 && player_moved && !player_won && !player_lost {
+            timer.update();
+        }
+
+        if hazards.colliding(&player) {
+            player_lost = true;
+
+            if !was_colliding {
+                play_sound(
+                    &player_lost_sound,
+                    PlaySoundParams {
+                        looped: false,
+                        volume: 1.0 + random_range(0.0..0.1),
+                    },
+                );
+            }
+        }
+
+        if !player_won_before && player_won {
+            play_sound(
+                &player_won_sound,
+                PlaySoundParams {
+                    looped: false,
+                    volume: 0.8,
+                },
+            );
+        }
+
         if player_won {
             draw_text("You Won!", 300.0, 500.0, 100.0, GREEN);
             draw_text("r to reset", 400.0, 550.0, 30.0, WHITE);
+        }
 
+        if player_lost {
+            draw_text("You LOST", 300.0, 500.0, 100.0, RED);
+            draw_text("r to reset", 400.0, 550.0, 30.0, WHITE);
+        }
+
+        if player_won || player_lost {
             if is_key_pressed(KeyCode::R) {
                 maze_gen.reset();
-                maze_gen.generate();
+                let grid = maze_gen.generate();
+                hazards = Hazards::new(&hazard_tex, &grid, size);
+                collectibles = Collectibles::new(&collectible_tex, &grid, size);
                 player.pos.x = (COLS - 2) as f32 * size as f32;
                 player.pos.y = (ROWS - 2) as f32 * size as f32;
-                player.cells = maze_gen.cells;
+                player.cells = maze_gen.grid;
                 set_camera(&camera);
                 camera.target = player.pos;
                 player_won = false;
+                player_lost = false;
                 timer.reset();
                 player_moved = false;
             }
@@ -243,12 +307,26 @@ async fn main() {
         set_default_camera();
 
         if !player_moved {
-            draw_text("Press any key to start!", 250.0, 450.0, 50.0, WHITE);
+            draw_text("Press any key to start!", 250.0, 300.0, 50.0, WHITE);
             draw_text(
                 "Get to the surface as quickly as possible!",
+                120.0,
+                500.0,
+                40.0,
+                WHITE,
+            );
+            draw_text(
+                "Green Mushrooms will remove a second from your time",
                 50.0,
                 600.0,
-                50.0,
+                40.0,
+                WHITE,
+            );
+            draw_text(
+                "But whatever you do don't touch the spikes",
+                120.0,
+                700.0,
+                40.0,
                 WHITE,
             );
         }

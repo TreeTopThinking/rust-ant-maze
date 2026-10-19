@@ -168,7 +168,7 @@ impl<const COLS: usize, const ROWS: usize> Player<COLS, ROWS> {
         (x, y, width, height)
     }
 
-    fn rectangle_collision(
+    pub fn rectangle_collision(
         &self,
         rect_x: f32,
         rect_y: f32,

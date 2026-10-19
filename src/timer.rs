@@ -27,6 +27,10 @@ impl Timer {
         self.time = get_time() as f32 - self.start_time;
     }
 
+    pub fn decrement(&mut self) {
+        self.start_time += 1.0;
+    }
+
     pub fn draw_time(&self) {
         let str_timer = format!("{:.1}", self.time);
         draw_text(str_timer, 10.0, screen_height() - 10.0, 50.0, WHITE);

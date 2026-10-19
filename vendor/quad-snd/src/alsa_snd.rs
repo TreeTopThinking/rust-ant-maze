@@ -1,6 +1,6 @@
 // roughly based on http://equalarea.com/paul/alsa-audio.html
 
-use crate::{PlaySoundParams, error::Error};
+use crate::{error::Error, PlaySoundParams};
 
 use quad_alsa_sys as sys;
 
@@ -12,7 +12,7 @@ mod consts {
     pub const DEVICES: &[&str] = &["default\0", "pipewire\0"];
     pub const RATE: u32 = 44100;
     pub const CHANNELS: u32 = 2;
-    pub const PCM_BUFFER_SIZE: ::std::os::raw::c_ulong = 512;
+    pub const PCM_BUFFER_SIZE: ::std::os::raw::c_ulong = 1024;
 }
 
 unsafe fn setup_pcm_device() -> *mut sys::snd_pcm_t {

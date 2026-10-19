@@ -7,8 +7,8 @@ use ::rand::random_range;
 use macroquad::prelude::*;
 
 pub trait MazeGen<const COLS: usize, const ROWS: usize> {
-    fn get_mut_cells(&mut self) -> &mut [[Cell; COLS]; ROWS];
-    fn get_cells(&self) -> [[Cell; COLS]; ROWS];
+    fn get_mut_grid(&mut self) -> &mut [[Cell; COLS]; ROWS];
+    fn get_grid(&self) -> [[Cell; COLS]; ROWS];
 
     fn is_wall(&self, i: usize, j: usize) -> bool;
 
@@ -21,7 +21,7 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
     fn finished(&self) -> bool {
         for i in (1..COLS as usize).step_by(2) {
             for j in (1..ROWS as usize).step_by(2) {
-                if self.get_cells()[i][j].wall {
+                if self.get_grid()[i][j].wall {
                     return false;
                 }
             }
@@ -42,8 +42,8 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
                 let left = Self::in_bounds(i as i32 - 1, j as i32) && self.is_wall(i - 1, j);
                 let right = Self::in_bounds(i as i32 + 1, j as i32) && self.is_wall(i + 1, j);
                 let n = random_range(0..3);
-                let cells = &mut self.get_mut_cells();
-                let cell = &mut cells[i][j];
+                let grid = &mut self.get_mut_grid();
+                let cell = &mut grid[i][j];
 
                 if grass {
                     if n < 1 {
@@ -95,7 +95,7 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
     }
 
     fn draw(&mut self, assets: &Assets, size: i32) {
-        for row in self.get_cells() {
+        for row in self.get_grid() {
             for cell in row {
                 cell.draw(assets, size);
             }
@@ -104,16 +104,16 @@ pub trait MazeGen<const COLS: usize, const ROWS: usize> {
 }
 
 impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for DfsMazeGen<COLS, ROWS> {
-    fn get_mut_cells(&mut self) -> &mut [[Cell; COLS]; ROWS] {
-        &mut self.cells
+    fn get_mut_grid(&mut self) -> &mut [[Cell; COLS]; ROWS] {
+        &mut self.grid
     }
 
-    fn get_cells(&self) -> [[Cell; COLS]; ROWS] {
-        self.cells
+    fn get_grid(&self) -> [[Cell; COLS]; ROWS] {
+        self.grid
     }
 
     fn is_wall(&self, i: usize, j: usize) -> bool {
-        self.cells[i][j].wall
+        self.grid[i][j].wall
     }
 
     fn reset(&mut self) {
@@ -122,16 +122,16 @@ impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for DfsMazeGen<CO
 }
 
 impl<const COLS: usize, const ROWS: usize> MazeGen<COLS, ROWS> for AbMazeGen<COLS, ROWS> {
-    fn get_mut_cells(&mut self) -> &mut [[Cell; COLS]; ROWS] {
-        &mut self.cells
+    fn get_mut_grid(&mut self) -> &mut [[Cell; COLS]; ROWS] {
+        &mut self.grid
     }
 
-    fn get_cells(&self) -> [[Cell; COLS]; ROWS] {
-        self.cells
+    fn get_grid(&self) -> [[Cell; COLS]; ROWS] {
+        self.grid
     }
 
     fn is_wall(&self, i: usize, j: usize) -> bool {
-        self.cells[i][j].wall
+        self.grid[i][j].wall
     }
 
     fn reset(&mut self) {
